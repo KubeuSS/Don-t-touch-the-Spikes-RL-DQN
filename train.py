@@ -9,18 +9,18 @@ import torch.optim as optim
 
 from env import SpikesEnv
 
-LR             = 2e-5
-GAMMA          = 0.995
-BATCH_SIZE     = 128      
-BUFFER_SIZE    = 50000
-MIN_BUFFER     = 128
+LR             = 3e-5
+GAMMA          = 0.9
+BATCH_SIZE     = 256      
+BUFFER_SIZE    = 30000
+MIN_BUFFER     = 2000
 TAU            = 0.005   # współczynnik soft update target network
 EPS_START      = 0.2
 EPS_END        = 0.02
 EPS_DECAY      = 0.999
 TOTAL_STEPS    = 200_000
 LOG_EVERY      = 1_000
-SAVE_EVERY     = 10_000 
+SAVE_EVERY     = 30_000 
 
 
 class ReplayBuffer:
@@ -60,13 +60,13 @@ class QNetwork(nn.Module):
         x = self.backbone(x)
         v = self.value(x)
         a = self.advantage(x)
-        return v + a - a.mean(dim=-1, keepdim=True)  # Q(s,a)
+        return v + a - a.mean(dim=-1, keepdim=True)
 
 
 def train():
-    env = SpikesEnv(frame_skip=5, curriculum=True)
-    obs_dim  = env.observation_space.shape[0]  # 11
-    n_actions = env.action_space.n              # 2
+    env = SpikesEnv(frame_skip=9, curriculum=True)
+    obs_dim  = env.observation_space.shape[0]
+    n_actions = env.action_space.n            
 
     q_net      = QNetwork(obs_dim, n_actions)
     target_net = QNetwork(obs_dim, n_actions)
@@ -130,9 +130,7 @@ def train():
             state, _ = env.reset()
             ep_reward = 0.0
 
-            if len(buffer) < BATCH_SIZE:  
-                continue                   
-
+        if len(buffer) >= MIN_BUFFER:
             s, a, r, s2, d = buffer.sample(BATCH_SIZE)
             q_pred = q_net(s).gather(1, a.unsqueeze(1)).squeeze(1)
 
@@ -144,12 +142,11 @@ def train():
             loss = nn.functional.smooth_l1_loss(q_pred, q_target)
             optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(q_net.parameters(), 1.0)  # twardy limit normy gradientu
+            torch.nn.utils.clip_grad_norm_(q_net.parameters(), 1.0)
             optimizer.step()
             for tp, qp in zip(target_net.parameters(), q_net.parameters()):
                 tp.data.copy_(TAU * qp.data + (1 - TAU) * tp.data)
 
-        
         eps = max(EPS_END, eps * EPS_DECAY)
 
         # logi
