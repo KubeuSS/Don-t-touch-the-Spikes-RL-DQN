@@ -6,7 +6,7 @@ from train import QNetwork
 
 MODEL_PATH = sys.argv[1] if len(sys.argv) > 1 else "model_final.pt"
 
-env = SpikesEnv(render_mode="human", frame_skip=5)
+env = SpikesEnv(render_mode="human", frame_skip=9)
 obs_dim   = env.observation_space.shape[0]
 n_actions = env.action_space.n
 
