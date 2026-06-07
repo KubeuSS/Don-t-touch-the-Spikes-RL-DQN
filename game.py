@@ -20,8 +20,7 @@ TITLES = [
     (2200, "CM"),
     (2300, "FM"),
     (2400, "IM"),
-    (2500, "GM"),
-    (2700, "God"),
+    (2500, "GM")
 ]
 
 def get_title(elo: int) -> str:
@@ -90,7 +89,6 @@ class Wall:
             img = font.render("♛", True, BLACK, WALL_COLOR)
             img.set_colorkey(WALL_COLOR)
             iw, ih = img.get_width(), img.get_height()
-            # wyśrodkowany na krawędzi ściany
             blit_x = (self.x + WALL_WIDTH - iw // 2) if self.side == 'left' \
                      else (self.x - iw // 2)
             surf.blit(img, (blit_x, cy - ih // 2))
