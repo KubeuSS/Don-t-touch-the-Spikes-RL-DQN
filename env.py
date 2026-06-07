@@ -30,10 +30,10 @@ class SpikesEnv:
         self.render_mode = render_mode
         self.frame_skip = frame_skip
         self.curriculum = curriculum
-        self.start_scores = [0, 0, 0, 0, 300, 600, 900]
+        self.start_scores = [0, 1200, 1200, 1200, 1200, 1200, 1200]
         self._start_score = 0
 
-        self.observation_space = _Box((11,))
+        self.observation_space = _Box((12,))
         self.action_space = _Discrete(2)
 
         self._screen = None
@@ -78,8 +78,9 @@ class SpikesEnv:
                 break
 
         if not terminated:
-            nearest = min(centers, key=lambda c: abs(self.bird.y - c))
-            distance = abs(self.bird.y - nearest) / HEIGHT
+            # najszersza luka
+            target_c, _ = max(centers, key=lambda cw: (cw[1], -abs(self.bird.y - cw[0])))
+            distance = abs(self.bird.y - target_c) / HEIGHT
             total_reward += (1.0 - distance) * 0.1
 
         return self._obs(), total_reward, terminated, False, {
@@ -88,7 +89,7 @@ class SpikesEnv:
             "start":    self._start_score // 100,
         }
 
-    def _gap_centers(self, wall) -> list[float]:
+    def _gap_centers(self, wall) -> list[tuple[float, int]]:
         slot_h = HEIGHT / NUM_SLOTS
         free = sorted(i for i in range(NUM_SLOTS) if i not in set(wall.spike_slots))
         runs = []
@@ -100,15 +101,21 @@ class SpikesEnv:
                 runs.append((start, prev))
                 start = prev = s
         runs.append((start, prev))
-        return [((a + b) / 2 + 0.5) * slot_h for a, b in runs]
+        return [(((a + b) / 2 + 0.5) * slot_h, b - a + 1) for a, b in runs]
 
 
     def _obs(self) -> np.ndarray:
         target = self.right if self.bird.vx > 0 else self.left
         spikes = set(target.spike_slots)
+        play_width = self.right.inner_x - self.left.inner_x
+        if self.bird.vx > 0:
+            dist_to_target = (self.right.inner_x - self.bird.x) / play_width
+        else:
+            dist_to_target = (self.bird.x - self.left.inner_x) / play_width
         obs = np.array([
             self.bird.y / HEIGHT,
             self.bird.vy / 35.0,
+            dist_to_target,
             *[1.0 if i in spikes else 0.0 for i in range(NUM_SLOTS)],
         ], dtype=np.float32)
         return np.clip(obs, -1.0, 1.0)
