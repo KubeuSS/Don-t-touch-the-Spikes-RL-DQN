@@ -8,7 +8,7 @@ from train import QNetwork
 N = 500
 paths = sys.argv[1:] or sorted(glob.glob("*.pt"))
 
-env = SpikesEnv(frame_skip=5, curriculum=False)
+env = SpikesEnv(frame_skip=9, curriculum=False)
 obs_dim = env.observation_space.shape[0]
 n_act = env.action_space.n
 
